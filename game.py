@@ -48,11 +48,23 @@ def draw_screen(board, block):
     grid_outline = pygame.Rect((BOARD_LEFT_MARGIN - BLOCK_MARGIN_SIZE, BOARD_TOP_MARGIN - BLOCK_MARGIN_SIZE), ((BLOCK_SIZE +
                                BLOCK_MARGIN_SIZE) * BOARD_WIDTH + BLOCK_MARGIN_SIZE, (BLOCK_SIZE + BLOCK_MARGIN_SIZE) * BOARD_HEIGHT + BLOCK_MARGIN_SIZE))
     pygame.draw.rect(SCREEN, GRAY, grid_outline)
+
     for r in range(BOARD_HEIGHT):
         for c in range(BOARD_WIDTH):
             cur_pixel = pygame.Rect((BOARD_LEFT_MARGIN + (BLOCK_SIZE + BLOCK_MARGIN_SIZE) * c,
                                     BOARD_TOP_MARGIN + (BLOCK_SIZE + BLOCK_MARGIN_SIZE) * r), (BLOCK_SIZE, BLOCK_SIZE))
             pygame.draw.rect(SCREEN, block_color.get(board[r][c]), cur_pixel)
+
+    right, left, top, bottom, r_pos, c_pos = block.get_boundaries()
+
+    for r in range(top, bottom + 1):
+        for c in range(left, right + 1):
+            if block.hitbox[r - r_pos][c - c_pos]:
+                cur_pixel = pygame.Rect((BOARD_LEFT_MARGIN + (BLOCK_SIZE + BLOCK_MARGIN_SIZE) * c,
+                                        BOARD_TOP_MARGIN + (BLOCK_SIZE + BLOCK_MARGIN_SIZE) * r), (BLOCK_SIZE, BLOCK_SIZE))
+                pygame.draw.rect(SCREEN, block_color.get(
+                    block.color), cur_pixel)
+
     pygame.display.update()
 
 
