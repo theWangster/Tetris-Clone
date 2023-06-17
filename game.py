@@ -47,15 +47,16 @@ def get_next_block(avaliable_blocks):
     return next_block, avaliable_blocks
 
 
-def place_block(block, board, avaliable_blocks):
+def place_block(block, board, avaliable_blocks, score, level):
     right, left, top, bottom, r_pos, c_pos = block.get_boundaries()
     for r in range(top, bottom + 1):
         for c in range(left, right + 1):
             if board[r][c] == 0 and block.hitbox[r - r_pos][c - c_pos]:
                 # checks if space is free then adds block
                 board[r][c] = block.color
+    board, score, lines = clear_rows(board, score, level)
     block, avaliable_blocks = get_next_block(avaliable_blocks)
-    return block, board, avaliable_blocks
+    return block, board, avaliable_blocks, score, lines
 
 
 def draw_screen(board, block, block_shadow):
@@ -92,6 +93,44 @@ def draw_screen(board, block, block_shadow):
     pygame.display.update()
 
 
+def clear_rows(board, score, level=1):
+    current_row = BOARD_HEIGHT - 1
+    new_board = np.zeros((BOARD_HEIGHT, BOARD_WIDTH))
+    lines = 0
+    for r in range(BOARD_HEIGHT - 1, -1, -1):
+        is_full_row = True
+
+        # finds whether a row is full or not
+        for c in range(BOARD_WIDTH):
+            if board[r][c] == 0:
+                is_full_row = False
+                break
+
+        if is_full_row:
+            lines += 1
+
+        # if all elements are empty
+        if np.all(board[r] == 0):
+            break
+
+        # if row is not full or not row of zeros
+        if not is_full_row:
+            new_board[current_row] = board[r]  # add the row to the new board
+            current_row -= 1
+
+    # scoring_system
+    if lines == 1:
+        score += 40 * level
+    elif lines == 2:
+        score += 100 * level
+    elif lines == 3:
+        score += 300 * level
+    elif lines == 4:
+        score += 1200 * level
+
+    return new_board, score, lines
+
+
 def main():
     clock = pygame.time.Clock()
     board = np.zeros((BOARD_HEIGHT, BOARD_WIDTH))
@@ -102,6 +141,8 @@ def main():
     hard_dropping = False
     rotating = False
     stopped_counter = 0
+    score = 0
+    lines = 0
 
     # gets the first block
     avaliable_blocks = [0, 1, 2, 3, 4, 5, 6]
@@ -112,6 +153,8 @@ def main():
     while running:
         clock.tick(60)
         keys_pressed = pygame.key.get_pressed()
+        level = 1 + lines // 10
+        BLOCK_MOVE_SPEED = BLOCK_MOVE_SPEED_START - 100 * level
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -135,9 +178,10 @@ def main():
             hard_dropping = True
             while True:  # drops block as far down as possible
                 if not block.move_down(board):
-                    block, board, avaliable_blocks = place_block(
-                        block, board, avaliable_blocks)
+                    block, board, avaliable_blocks, score, new_lines = place_block(
+                        block, board, avaliable_blocks, score, level)
                     stopped_counter = 0
+                    lines += new_lines
                     break
             pygame.time.set_timer(move_hard_drop, HARD_DROP_SPEED)
         if keys_pressed[pygame.K_DOWN]:  # drops block fast
@@ -169,9 +213,10 @@ def main():
 
         # Block gets placed after certain time
         if stopped_counter >= TIME_FOR_STOP:
-            block, board, avaliable_blocks = place_block(
-                block, board, avaliable_blocks)
+            block, board, avaliable_blocks, score, new_lines = place_block(
+                block, board, avaliable_blocks, score, level)
             stopped_counter = 0
+            lines += new_lines
 
         # draws block shadow
         block_shadow = copy.deepcopy(block)
@@ -179,12 +224,16 @@ def main():
             if not block_shadow.move_down(board):
                 break
 
-        log_board(board, block)  # temp for debugging
-        print(avaliable_blocks)
-        draw_screen(board, block, block_shadow)
+        # resets movement timer
         if not moving:
             pygame.time.set_timer(move_block_down, BLOCK_MOVE_SPEED)
             moving = True
+
+#        log_board(board, block)  # temp for debugging
+#        print(avaliable_blocks)
+        print(f"Score is: {score}. Total lines cleared is: {lines}")
+
+        draw_screen(board, block, block_shadow)
     pygame.quit()
 
 
