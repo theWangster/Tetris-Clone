@@ -20,7 +20,37 @@ HARD_DROP_SPEED = 125
 TIME_FOR_STOP = 2
 
 # blocks
+I_BLOCK = np.array([[False, True, False, False],
+                    [False, True, False, False],
+                    [False, True, False, False],
+                    [False, True, False, False]])
+O_BLOCK = np.array([[True, True],
+                    [True, True]])
+S_BLOCK = np.array([[False, True, True],
+                    [True, True, False],
+                    [False, False, False]])
+Z_BLOCK = np.array([[True, True, False],
+                    [False, True, True],
+                    [False, False, False]])
+L_BLOCK = np.array([[True, True, True],
+                    [True, False, False],
+                    [False, False, False]])
+J_BLOCK = np.array([[True, True, True],
+                    [False, False, True],
+                    [False, False, False]])
+T_BLOCK = np.array([[True, True, True],
+                    [False, True, False],
+                    [False, False, False]])
 
+block_types = {
+    0: I_BLOCK,
+    1: O_BLOCK,
+    2: S_BLOCK,
+    3: Z_BLOCK,
+    4: L_BLOCK,
+    5: J_BLOCK,
+    6: T_BLOCK
+}
 
 # colors
 BLACK = (0, 0, 20)
