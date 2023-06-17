@@ -38,7 +38,7 @@ move_hard_drop = pygame.USEREVENT + 4
 # gets next random block based on https://tetris.fandom.com/wiki/Random_Generator
 # decided agaisnt function due to constant changing of variables
 def get_next_block(avaliable_blocks):
-    if len(avaliable_blocks) <= 4:
+    if len(avaliable_blocks) <= 5:
         shuffled_blocks = [0, 1, 2, 3, 4, 5, 6]
         random.shuffle(shuffled_blocks)
         avaliable_blocks += shuffled_blocks
@@ -89,6 +89,13 @@ def draw_screen(board, block, block_shadow):
                                         BOARD_TOP_MARGIN + (BLOCK_SIZE + BLOCK_MARGIN_SIZE) * r), (BLOCK_SIZE, BLOCK_SIZE))
                 pygame.draw.rect(SCREEN, block_color.get(
                     block.color), cur_pixel)
+
+    next_block_outline = pygame.Rect(
+        NEXT_BLOCK_LEFT, BOARD_TOP_MARGIN - BLOCK_MARGIN_SIZE, NEXT_BLOCK_WIDTH, NEXT_BLOCK_HEIGHT)
+    next_block_black = pygame.Rect(NEXT_BLOCK_LEFT + BLOCK_MARGIN_SIZE, BOARD_TOP_MARGIN,
+                                   NEXT_BLOCK_WIDTH - 2 * BLOCK_MARGIN_SIZE, NEXT_BLOCK_HEIGHT - 2 * BLOCK_MARGIN_SIZE)
+    pygame.draw.rect(SCREEN, GRAY, next_block_outline)
+    pygame.draw.rect(SCREEN, BLACK, next_block_black)
 
     pygame.display.update()
 
