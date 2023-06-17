@@ -7,16 +7,22 @@ BOARD_LEFT_MARGIN = (WIDTH - BLOCK_SIZE * BOARD_WIDTH -
                      BLOCK_MARGIN_SIZE * (BOARD_WIDTH + 1)) // 2
 BOARD_TOP_MARGIN = (HEIGHT - BOARD_HEIGHT * BLOCK_SIZE -
                     (BOARD_HEIGHT + 1) * BLOCK_MARGIN_SIZE) // 2
+
+# game settings (feel free to tune to your comfort)
 BLOCK_MOVE_SPEED = 750
 MOVEMENT_SPEED = 80
 ROTATION_SPEED = 125
+HARD_DROP_SPEED = 125
 TIME_FOR_STOP = 2
 
+# blocks
+
+
+# colors
 BLACK = (0, 0, 20)
 GRAY = (40, 40, 40)
 GREY = (160, 160, 160)
 WHITE = (255, 255, 255)
-
 PURPLE = (112, 0, 161)
 MAGENTA = (195, 0, 255)
 BLUE = (36, 36, 255)

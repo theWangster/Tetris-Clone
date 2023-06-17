@@ -1,5 +1,6 @@
 import pygame
 import numpy as np
+import copy
 from block import Block
 import random
 from settings import *  # NOQA
@@ -31,19 +32,33 @@ block_color = {
 move_block_down = pygame.USEREVENT + 1
 move_horizontally = pygame.USEREVENT + 2
 move_rotate = pygame.USEREVENT + 3
+move_hard_drop = pygame.USEREVENT + 4
 
 
-def place_block(block, board):
+# gets next random block based on https://tetris.fandom.com/wiki/Random_Generator
+# decided agaisnt function due to constant changing of variables
+def get_next_block(avaliable_blocks):
+    if len(avaliable_blocks) <= 4:
+        shuffled_blocks = [0, 1, 2, 3, 4, 5, 6]
+        random.shuffle(shuffled_blocks)
+        avaliable_blocks += shuffled_blocks
+
+    next_block = Block(avaliable_blocks.pop(0))
+    return next_block, avaliable_blocks
+
+
+def place_block(block, board, avaliable_blocks):
     right, left, top, bottom, r_pos, c_pos = block.get_boundaries()
     for r in range(top, bottom + 1):
         for c in range(left, right + 1):
             if board[r][c] == 0 and block.hitbox[r - r_pos][c - c_pos]:
                 # checks if space is free then adds block
                 board[r][c] = block.color
-    return board
+    block, avaliable_blocks = get_next_block(avaliable_blocks)
+    return block, board, avaliable_blocks
 
 
-def draw_screen(board, block):
+def draw_screen(board, block, block_shadow):
     SCREEN.fill(BLACK)
     grid_outline = pygame.Rect((BOARD_LEFT_MARGIN - BLOCK_MARGIN_SIZE, BOARD_TOP_MARGIN - BLOCK_MARGIN_SIZE), ((BLOCK_SIZE +
                                BLOCK_MARGIN_SIZE) * BOARD_WIDTH + BLOCK_MARGIN_SIZE, (BLOCK_SIZE + BLOCK_MARGIN_SIZE) * BOARD_HEIGHT + BLOCK_MARGIN_SIZE))
@@ -55,8 +70,17 @@ def draw_screen(board, block):
                                     BOARD_TOP_MARGIN + (BLOCK_SIZE + BLOCK_MARGIN_SIZE) * r), (BLOCK_SIZE, BLOCK_SIZE))
             pygame.draw.rect(SCREEN, block_color.get(board[r][c]), cur_pixel)
 
-    right, left, top, bottom, r_pos, c_pos = block.get_boundaries()
+    # draws block shadow
+    right, left, top, bottom, r_pos, c_pos = block_shadow.get_boundaries()
+    for r in range(top, bottom + 1):
+        for c in range(left, right + 1):
+            if block.hitbox[r - r_pos][c - c_pos]:
+                cur_pixel = pygame.Rect((BOARD_LEFT_MARGIN + (BLOCK_SIZE + BLOCK_MARGIN_SIZE) * c,
+                                        BOARD_TOP_MARGIN + (BLOCK_SIZE + BLOCK_MARGIN_SIZE) * r), (BLOCK_SIZE, BLOCK_SIZE))
+                pygame.draw.rect(SCREEN, GREY, cur_pixel)
 
+    # draws actual block
+    right, left, top, bottom, r_pos, c_pos = block.get_boundaries()
     for r in range(top, bottom + 1):
         for c in range(left, right + 1):
             if block.hitbox[r - r_pos][c - c_pos]:
@@ -71,51 +95,53 @@ def draw_screen(board, block):
 def main():
     clock = pygame.time.Clock()
     board = np.zeros((BOARD_HEIGHT, BOARD_WIDTH))
+
+    # movement timer helpers
     moving = False
     moving_horizontally = False
+    hard_dropping = False
     rotating = False
     stopped_counter = 0
+
+    # gets the first block
     avaliable_blocks = [0, 1, 2, 3, 4, 5, 6]
-    block = Block(avaliable_blocks.pop(random.randint(0, 6)))
+    random.shuffle(avaliable_blocks)
+    block = Block(avaliable_blocks.pop(0))
+
     running = True
     while running:
         clock.tick(60)
+        keys_pressed = pygame.key.get_pressed()
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
             elif event.type == move_block_down:
                 moving = False  # makes sure no more moves until timer done
                 if block.move_down(board):
-                    stopped_counter = 0
+                    stopped_counter = 0  # resets timer if block moves down
                 else:
-                    stopped_counter += 1
+                    stopped_counter += 1  # increments timer when still
                 pygame.time.set_timer(move_block_down, 0)
             elif event.type == move_horizontally:
                 moving_horizontally = False
             elif event.type == move_rotate:
                 rotating = False
+            elif event.type == move_hard_drop:
+                hard_dropping = False
 
-        keys_pressed = pygame.key.get_pressed()
-
-        if keys_pressed[pygame.K_SPACE]:
-            while True:
+        # dropping mechanics
+        if keys_pressed[pygame.K_SPACE] and not hard_dropping:
+            hard_dropping = True
+            while True:  # drops block as far down as possible
                 if not block.move_down(board):
-                    board = place_block(block, board)
+                    block, board, avaliable_blocks = place_block(
+                        block, board, avaliable_blocks)
+                    stopped_counter = 0
                     break
-            stopped_counter = TIME_FOR_STOP - 1
-        if keys_pressed[pygame.K_DOWN]:
+            pygame.time.set_timer(move_hard_drop, HARD_DROP_SPEED)
+        if keys_pressed[pygame.K_DOWN]:  # drops block fast
             block.move_down(board)
-
-        # gets next random block based on https://tetris.fandom.com/wiki/Random_Generator
-        # decided agaisnt function due to constant changing of variables
-        if stopped_counter >= TIME_FOR_STOP:
-            index = random.randint(0, len(avaliable_blocks) - 1)
-            next_block_type = avaliable_blocks.pop(index)
-            board = place_block(block, board)
-            block = Block(next_block_type)
-            stopped_counter = 0
-            if len(avaliable_blocks) == 0:
-                avaliable_blocks = [0, 1, 2, 3, 4, 5, 6]
 
         # movement stuff should probably be in seperate class but ah well
         if not moving_horizontally:
@@ -141,8 +167,21 @@ def main():
                 pygame.time.set_timer(move_rotate, ROTATION_SPEED)
                 rotating = True
 
+        # Block gets placed after certain time
+        if stopped_counter >= TIME_FOR_STOP:
+            block, board, avaliable_blocks = place_block(
+                block, board, avaliable_blocks)
+            stopped_counter = 0
+
+        # draws block shadow
+        block_shadow = copy.deepcopy(block)
+        while True:
+            if not block_shadow.move_down(board):
+                break
+
         log_board(board, block)  # temp for debugging
-        draw_screen(board, block)
+        print(avaliable_blocks)
+        draw_screen(board, block, block_shadow)
         if not moving:
             pygame.time.set_timer(move_block_down, BLOCK_MOVE_SPEED)
             moving = True
