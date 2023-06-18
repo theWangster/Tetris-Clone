@@ -1,6 +1,7 @@
 import pygame
 import numpy as np
 import copy
+import os
 from block import Block
 import random
 from settings import *  # NOQA
@@ -13,11 +14,19 @@ Tetris game
 """
 
 pygame.init()
+pygame.font.init()
+pygame.mixer.init()
 SCREEN = pygame.display.set_mode((WIDTH, HEIGHT), pygame.SCALED)
 pygame.display.set_caption(CAPTION)
 SCREEN.fill(BLACK)
 pygame.display.flip()
-font = pygame.font.Font('freesansbold.ttf', 18)
+font = pygame.font.SysFont('Comic Sans MS', 48)
+drop_sfx = pygame.mixer.Sound(os.path.join("Assets/", "drop-sfx.opus"))
+drop_sfx.set_volume(0.25)
+death_sfx = pygame.mixer.Sound(os.path.join("Assets/", "death-sfx.opus"))
+clear_sfx = pygame.mixer.Sound(os.path.join("Assets/", "clear-sfx.opus"))
+# tetris_music = pygame.mixer.Sound(os.path.join("Assets/", "tetris.opus"))
+pygame.mixer.music.load(os.path.join("Assets/", "tetris.opus"))
 
 block_color = {
     0: BLACK,
@@ -64,6 +73,8 @@ def place_block(block, board, avaliable_blocks, score, level):
                 board[r][c] = block.color
     board, score, lines = clear_rows(board, score, level)
     block, avaliable_blocks = get_next_block(avaliable_blocks)
+
+    pygame.mixer.Sound.play(drop_sfx)
 
     if not block.is_valid_move(board):
         pygame.event.post(pygame.event.Event(game_over))
@@ -192,6 +203,7 @@ def clear_rows(board, score, level=1):
 
         if is_full_row:
             lines += 1
+            pygame.mixer.Sound.play(clear_sfx)
 
         # if all elements are empty
         if np.all(board[r] == 0):
@@ -266,6 +278,8 @@ def main():
             elif event.type == move_hard_drop:
                 hard_dropping = False
             elif event.type == game_over:
+                pygame.mixer.fadeout(50)
+                pygame.mixer.Sound.play(death_sfx)
                 running = False
 
         # dropping mechanics
@@ -365,7 +379,68 @@ def log_board(board, block):
     print(printed_board)
 
 
+BUTTON_WIDTH = 100
+BUTTON_HEIGHT = 50
+SPACING = 75
+button = pygame.Rect(540 - BUTTON_WIDTH / 2,
+                     130, BUTTON_WIDTH, BUTTON_HEIGHT)
+
+title_font = pygame.font.SysFont('Comic Sans MS', 64)
+
+title = title_font.render("Tetris", True, WHITE)
+play = font.render("Play", True, BLACK)
+info = font.render("Help", True, BLACK)
+death = title_font.render("You Died", True, RED)
+
+h1 = font.render("The left and right arrows move the block", False, WHITE)
+h2 = font.render("Use the z, x and up key to rotate the block", False, WHITE)
+h3 = font.render("Use space or down key to drop the block", False, WHITE)
+h4 = font.render("Press c to hold onto a block", False, WHITE)
+
+help = [h1, h2, h3, h4]
+
+
+def display_title_screen(has_died):
+    """
+    Prints out the start and restart screen
+    Also provides info and hints when first started
+    """
+    SCREEN.blit(title, (540 - 60, BOARD_TOP_MARGIN))
+    pygame.draw.rect(SCREEN, WHITE, button)
+    SCREEN.blit(play, (540 - 35, BOARD_TOP_MARGIN + 90))
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return -1
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                mouse_pos = event.pos
+
+                if button.collidepoint(mouse_pos):
+                    return 1
+
+        if has_died:
+            SCREEN.blit(
+                death, (540 - 90, BOARD_TOP_MARGIN + 65 + SPACING * 4))
+        else:
+            for i in range(len(help)):
+                SCREEN.blit(
+                    help[i], (540 - 285, BOARD_TOP_MARGIN + 65 + SPACING * 3 + 25 * i))
+
+        pygame.display.update()
+
+
 # makes sure code was directly run
 if __name__ == "__main__":
+    has_died = False
+    pygame.mixer.music.set_volume(0.5)
+    pygame.mixer.music.play(-1, 0, 2500)
     while True:
-        main()
+        next_action = display_title_screen(has_died)
+        if next_action == -1:
+            pygame.quit()
+            break
+        elif next_action == 1:
+            main()
+            has_died = True
+            SCREEN.fill(BLACK)
+            pygame.display.update()
