@@ -22,7 +22,10 @@ NEXT_BLOCK_MARGIN = (NEXT_BLOCK_HEIGHT - 10 *
 NEXT_BLOCK_TOP_POS = BOARD_TOP_MARGIN + BLOCK_MARGIN_SIZE + NEXT_BLOCK_MARGIN
 HOLD_LEFT_MARGIN = BOARD_LEFT_MARGIN - NEXT_BLOCK_WIDTH - 20 - BLOCK_MARGIN_SIZE
 HOLD_HEIGHT = BLOCK_SIZE * 3 + BLOCK_MARGIN_SIZE * 4
-
+HOLD_BLOCK_LEFT_POS = HOLD_LEFT_MARGIN + BLOCK_MARGIN_SIZE + \
+    (NEXT_BLOCK_WIDTH - 4 * BLOCK_SIZE - 3 * BLOCK_MARGIN_SIZE) // 2
+HOLD_BLOCK_TOP_POS = BOARD_TOP_MARGIN + \
+    (HOLD_HEIGHT - 2 * BLOCK_SIZE - BLOCK_MARGIN_SIZE) // 2 + BLOCK_MARGIN_SIZE
 
 # game settings (feel free to tune to your comfort)
 BLOCK_MOVE_SPEED_START = 1000
@@ -54,6 +57,7 @@ T_BLOCK = np.array([[True, True, True],
                     [False, True, False],
                     [False, False, False]])
 
+# shrunk and elongated blocks for the upcoming and hold pannels
 I = np.array([[True, True, True, True],
               [False, False, False, False]])
 O = np.array([[False, True, True, False],

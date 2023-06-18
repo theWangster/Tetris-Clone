@@ -17,6 +17,7 @@ SCREEN = pygame.display.set_mode((WIDTH, HEIGHT), pygame.SCALED)
 pygame.display.set_caption(CAPTION)
 SCREEN.fill(BLACK)
 pygame.display.flip()
+font = pygame.font.Font('freesansbold.ttf', 18)
 
 block_color = {
     0: BLACK,
@@ -34,11 +35,14 @@ move_horizontally = pygame.USEREVENT + 2
 move_rotate = pygame.USEREVENT + 3
 move_hard_drop = pygame.USEREVENT + 4
 move_switching = pygame.USEREVENT + 5
+game_over = pygame.USEREVENT + 7
 
 
-# gets next random block based on https://tetris.fandom.com/wiki/Random_Generator
-# decided agaisnt function due to constant changing of variables
 def get_next_block(avaliable_blocks):
+    """
+    Gets next random block based on https://tetris.fandom.com/wiki/Random_Generator
+    """
+
     if len(avaliable_blocks) <= 5:
         shuffled_blocks = [0, 1, 2, 3, 4, 5, 6]
         random.shuffle(shuffled_blocks)
@@ -49,6 +53,10 @@ def get_next_block(avaliable_blocks):
 
 
 def place_block(block, board, avaliable_blocks, score, level):
+    """
+    Places the block on the board. Updates board, gets new block and positions it
+    """
+
     right, left, top, bottom, r_pos, c_pos = block.get_boundaries()
     for r in range(top, bottom + 1):
         for c in range(left, right + 1):
@@ -57,10 +65,19 @@ def place_block(block, board, avaliable_blocks, score, level):
                 board[r][c] = block.color
     board, score, lines = clear_rows(board, score, level)
     block, avaliable_blocks = get_next_block(avaliable_blocks)
+
+    if not block.is_valid_move(board):
+        pygame.event.post(pygame.event.Event(game_over))
+
     return block, board, avaliable_blocks, score, lines
 
 
-def draw_screen(board, block, block_shadow, avaliable_blocks):
+def draw_screen(board, block, block_shadow, avaliable_blocks, alt_block, score):
+    """
+    Draws the screen, including the board, the next 5 blocks,
+    the current block, the shadow of the current block, and the held block
+    """
+
     SCREEN.fill(BLACK)
     grid_outline = pygame.Rect((BOARD_LEFT_MARGIN - BLOCK_MARGIN_SIZE, BOARD_TOP_MARGIN - BLOCK_MARGIN_SIZE), ((BLOCK_SIZE +
                                BLOCK_MARGIN_SIZE) * BOARD_WIDTH + BLOCK_MARGIN_SIZE, (BLOCK_SIZE + BLOCK_MARGIN_SIZE) * BOARD_HEIGHT + BLOCK_MARGIN_SIZE))
@@ -103,32 +120,65 @@ def draw_screen(board, block, block_shadow, avaliable_blocks):
         next_block = display_block_types.get(avaliable_blocks[i])
         row = (NEXT_BLOCK_MARGIN + BLOCK_SIZE * 2 +
                BLOCK_MARGIN_SIZE) * i  # move down for every block
+
         for width in range(4):
-            for height in range(2):
+            block_offset = 0
+            vert_offset = 0
+            if avaliable_blocks[i] == 0:
+                vert_offset = (BLOCK_SIZE + BLOCK_MARGIN_SIZE) // 2
+            if avaliable_blocks[i] == 1:  # if I or O block, ignore offset
                 block_offset = 0
+            # if any other block, add in offset for aesthetics
+            elif avaliable_blocks[i] != 0:
+                block_offset = (BLOCK_SIZE + BLOCK_MARGIN_SIZE) // 2
+
+            for height in range(2):
                 if next_block[height][width] == 0:  # don't draw blank squares
                     continue
-                if avaliable_blocks[i] == 1:  # if I or O block, ignore offset
-                    block_offset = 0
-                # if any other block, add in offset for aesthetics
-                elif avaliable_blocks[i] != 0:
-                    block_offset = (BLOCK_SIZE + BLOCK_MARGIN_SIZE) // 2
                 cur_pixel = pygame.Rect(NEXT_BLOCK_LEFT_POS + (BLOCK_SIZE + BLOCK_MARGIN_SIZE) * width + block_offset,
-                                        NEXT_BLOCK_TOP_POS + (BLOCK_SIZE + BLOCK_MARGIN_SIZE) * height + row, BLOCK_SIZE, BLOCK_SIZE)
+                                        NEXT_BLOCK_TOP_POS + (BLOCK_SIZE + BLOCK_MARGIN_SIZE) * height + row + vert_offset, BLOCK_SIZE, BLOCK_SIZE)
                 pygame.draw.rect(SCREEN, block_color.get(
                     avaliable_blocks[i] + 1), cur_pixel)
 
+    # draws the held block
     hold_block_outline = pygame.Rect(
-        HOLD_LEFT_MARGIN, BOARD_TOP_MARGIN - BLOCK_MARGIN_SIZE, NEXT_BLOCK_WIDTH, HOLD_HEIGHT)
+        HOLD_LEFT_MARGIN, BOARD_TOP_MARGIN - BLOCK_MARGIN_SIZE, NEXT_BLOCK_WIDTH, HOLD_HEIGHT + 2 * BLOCK_MARGIN_SIZE)
     hold_block_black = pygame.Rect(HOLD_LEFT_MARGIN + BLOCK_MARGIN_SIZE, BOARD_TOP_MARGIN,
-                                   NEXT_BLOCK_WIDTH - 2 * BLOCK_MARGIN_SIZE, HOLD_HEIGHT - 2 * BLOCK_MARGIN_SIZE)
+                                   NEXT_BLOCK_WIDTH - 2 * BLOCK_MARGIN_SIZE, HOLD_HEIGHT)
     pygame.draw.rect(SCREEN, GRAY, hold_block_outline)
     pygame.draw.rect(SCREEN, BLACK, hold_block_black)
+
+    block_offset = 0
+    vert_offset = 0
+
+    if alt_block is not None:
+        # pretties up edge case blocks I and O, makes them centered
+        if alt_block.type == 0:
+            vert_offset = (BLOCK_SIZE + BLOCK_MARGIN_SIZE) // 2
+        elif alt_block.type != 1:
+            block_offset = (BLOCK_SIZE + BLOCK_MARGIN_SIZE) // 2
+        for width in range(4):
+            for height in range(2):
+                # don't draw blank squares
+                if not display_block_types.get(alt_block.type)[height][width]:
+                    continue
+                cur_pixel = pygame.Rect(HOLD_BLOCK_LEFT_POS + (BLOCK_SIZE + BLOCK_MARGIN_SIZE) * width + block_offset,
+                                        HOLD_BLOCK_TOP_POS + (BLOCK_SIZE + BLOCK_MARGIN_SIZE) * height + vert_offset, BLOCK_SIZE, BLOCK_SIZE)
+                pygame.draw.rect(SCREEN, block_color.get(
+                    alt_block.color), cur_pixel)
+
+    score_text = font.render(f"Score: {score}", True, WHITE)
+    SCREEN.blit(score_text, (HOLD_BLOCK_LEFT_POS - 20,
+                HOLD_BLOCK_TOP_POS + HOLD_HEIGHT + 20))
 
     pygame.display.update()
 
 
 def clear_rows(board, score, level=1):
+    """
+    Removes all rows which have been completely filled. Also calculates score based off of lines removed
+    """
+
     current_row = BOARD_HEIGHT - 1
     new_board = np.zeros((BOARD_HEIGHT, BOARD_WIDTH))
     lines = 0
@@ -167,6 +217,10 @@ def clear_rows(board, score, level=1):
 
 
 def main():
+    """
+    Handles all input from the user. Controls everything. Should be split into seperate functions/classes when refactoring
+    """
+
     clock = pygame.time.Clock()
     board = np.zeros((BOARD_HEIGHT, BOARD_WIDTH))
 
@@ -198,6 +252,7 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+                pygame.quit()
             elif event.type == move_block_down:
                 moving = False  # makes sure no more moves until timer done
                 if block.move_down(board):
@@ -213,6 +268,8 @@ def main():
                 hard_dropping = False
             elif event.type == move_switching:
                 switching = False
+            elif event.type == game_over:
+                running = False
 
         # dropping mechanics
         if keys_pressed[pygame.K_SPACE] and not hard_dropping:
@@ -225,6 +282,7 @@ def main():
                     lines += new_lines
                     break
             pygame.time.set_timer(move_hard_drop, HARD_DROP_SPEED)
+            pygame.time.set_timer(move_switching, 150)
         if keys_pressed[pygame.K_DOWN]:  # drops block fast
             block.move_down(board)
 
@@ -237,7 +295,6 @@ def main():
                 temp_block = Block(block.type)
                 block = Block(alt_block.type)
                 alt_block = Block(temp_block.type)
-            pygame.time.set_timer(move_switching, 150)
             switching = True
 
         # movement stuff should probably be in seperate class but ah well
@@ -269,6 +326,7 @@ def main():
             block, board, avaliable_blocks, score, new_lines = place_block(
                 block, board, avaliable_blocks, score, level)
             stopped_counter = 0
+            pygame.time.set_timer(move_switching, 150)
             lines += new_lines
 
         # draws block shadow
@@ -282,16 +340,19 @@ def main():
             pygame.time.set_timer(move_block_down, BLOCK_MOVE_SPEED)
             moving = True
 
-#        log_board(board, block)  # temp for debugging
-#        print(avaliable_blocks)
-        print(f"Score is: {score}. Total lines cleared is: {lines}")
-
-        draw_screen(board, block, block_shadow, avaliable_blocks)
-    pygame.quit()
+        draw_screen(board, block, block_shadow,
+                    avaliable_blocks, alt_block, score)
 
 
 # for debugging
 def log_board(board, block):
+    """
+    Logs the board and prints out current score, lines and the next blocks. For debugging
+    """
+
+    print(avaliable_blocks)
+    print(f"Score is: {score}. Total lines cleared is: {lines}")
+
     right, left, top, bottom, pos_r, pos_c = block.get_boundaries()
 
     printed_board = '-' * 30 + '\n'
@@ -309,4 +370,5 @@ def log_board(board, block):
 
 # makes sure code was directly run
 if __name__ == "__main__":
-    main()
+    while True:
+        main()
