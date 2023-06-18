@@ -1,3 +1,5 @@
+import numpy as np
+
 WIDTH, HEIGHT = 1080, 720
 BOARD_WIDTH, BOARD_HEIGHT = 10, 22
 CAPTION = "Tetris"

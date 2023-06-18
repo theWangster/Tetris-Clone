@@ -33,6 +33,7 @@ move_block_down = pygame.USEREVENT + 1
 move_horizontally = pygame.USEREVENT + 2
 move_rotate = pygame.USEREVENT + 3
 move_hard_drop = pygame.USEREVENT + 4
+move_switching = pygame.USEREVENT + 5
 
 
 # gets next random block based on https://tetris.fandom.com/wiki/Random_Generator
@@ -147,6 +148,7 @@ def main():
     moving_horizontally = False
     hard_dropping = False
     rotating = False
+    switching = False
     stopped_counter = 0
     score = 0
     lines = 0
@@ -155,6 +157,7 @@ def main():
     avaliable_blocks = [0, 1, 2, 3, 4, 5, 6]
     random.shuffle(avaliable_blocks)
     block = Block(avaliable_blocks.pop(0))
+    alt_block = None
 
     running = True
     while running:
@@ -162,6 +165,8 @@ def main():
         keys_pressed = pygame.key.get_pressed()
         level = 1 + lines // 10
         BLOCK_MOVE_SPEED = BLOCK_MOVE_SPEED_START - 100 * level
+        if BLOCK_MOVE_SPEED <= 0:
+            BLOCK_MOVE_SPEED = 20
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -179,6 +184,8 @@ def main():
                 rotating = False
             elif event.type == move_hard_drop:
                 hard_dropping = False
+            elif event.type == move_switching:
+                switching = False
 
         # dropping mechanics
         if keys_pressed[pygame.K_SPACE] and not hard_dropping:
@@ -193,6 +200,18 @@ def main():
             pygame.time.set_timer(move_hard_drop, HARD_DROP_SPEED)
         if keys_pressed[pygame.K_DOWN]:  # drops block fast
             block.move_down(board)
+
+        # switching blocks
+        if keys_pressed[pygame.K_c] and not switching:
+            if alt_block is None:
+                alt_block = Block(block.type)
+                block, avaliable_blocks = get_next_block(avaliable_blocks)
+            else:
+                temp_block = Block(block.type)
+                block = Block(alt_block.type)
+                alt_block = Block(temp_block.type)
+            pygame.time.set_timer(move_switching, 150)
+            switching = True
 
         # movement stuff should probably be in seperate class but ah well
         if not moving_horizontally:

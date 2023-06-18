@@ -13,6 +13,7 @@ class Block():
     def __init__(self, type):
         self.hitbox = block_types.get(type)
         self.color = type + 1
+        self.type = type
         self.r = 0
         if type == 1:
             self.c = 4
