@@ -60,7 +60,7 @@ def place_block(block, board, avaliable_blocks, score, level):
     return block, board, avaliable_blocks, score, lines
 
 
-def draw_screen(board, block, block_shadow):
+def draw_screen(board, block, block_shadow, avaliable_blocks):
     SCREEN.fill(BLACK)
     grid_outline = pygame.Rect((BOARD_LEFT_MARGIN - BLOCK_MARGIN_SIZE, BOARD_TOP_MARGIN - BLOCK_MARGIN_SIZE), ((BLOCK_SIZE +
                                BLOCK_MARGIN_SIZE) * BOARD_WIDTH + BLOCK_MARGIN_SIZE, (BLOCK_SIZE + BLOCK_MARGIN_SIZE) * BOARD_HEIGHT + BLOCK_MARGIN_SIZE))
@@ -91,12 +91,39 @@ def draw_screen(board, block, block_shadow):
                 pygame.draw.rect(SCREEN, block_color.get(
                     block.color), cur_pixel)
 
+    # all for formatting, math is irrelevant
     next_block_outline = pygame.Rect(
-        NEXT_BLOCK_LEFT, BOARD_TOP_MARGIN - BLOCK_MARGIN_SIZE, NEXT_BLOCK_WIDTH, NEXT_BLOCK_HEIGHT)
+        NEXT_BLOCK_LEFT, BOARD_TOP_MARGIN - BLOCK_MARGIN_SIZE, NEXT_BLOCK_WIDTH, NEXT_BLOCK_HEIGHT + 2 * BLOCK_MARGIN_SIZE)
     next_block_black = pygame.Rect(NEXT_BLOCK_LEFT + BLOCK_MARGIN_SIZE, BOARD_TOP_MARGIN,
-                                   NEXT_BLOCK_WIDTH - 2 * BLOCK_MARGIN_SIZE, NEXT_BLOCK_HEIGHT - 2 * BLOCK_MARGIN_SIZE)
+                                   NEXT_BLOCK_WIDTH - 2 * BLOCK_MARGIN_SIZE, NEXT_BLOCK_HEIGHT)
     pygame.draw.rect(SCREEN, GRAY, next_block_outline)
     pygame.draw.rect(SCREEN, BLACK, next_block_black)
+
+    for i in range(5):
+        next_block = display_block_types.get(avaliable_blocks[i])
+        row = (NEXT_BLOCK_MARGIN + BLOCK_SIZE * 2 +
+               BLOCK_MARGIN_SIZE) * i  # move down for every block
+        for width in range(4):
+            for height in range(2):
+                block_offset = 0
+                if next_block[height][width] == 0:  # don't draw blank squares
+                    continue
+                if avaliable_blocks[i] == 1:  # if I or O block, ignore offset
+                    block_offset = 0
+                # if any other block, add in offset for aesthetics
+                elif avaliable_blocks[i] != 0:
+                    block_offset = (BLOCK_SIZE + BLOCK_MARGIN_SIZE) // 2
+                cur_pixel = pygame.Rect(NEXT_BLOCK_LEFT_POS + (BLOCK_SIZE + BLOCK_MARGIN_SIZE) * width + block_offset,
+                                        NEXT_BLOCK_TOP_POS + (BLOCK_SIZE + BLOCK_MARGIN_SIZE) * height + row, BLOCK_SIZE, BLOCK_SIZE)
+                pygame.draw.rect(SCREEN, block_color.get(
+                    avaliable_blocks[i] + 1), cur_pixel)
+
+    hold_block_outline = pygame.Rect(
+        HOLD_LEFT_MARGIN, BOARD_TOP_MARGIN - BLOCK_MARGIN_SIZE, NEXT_BLOCK_WIDTH, HOLD_HEIGHT)
+    hold_block_black = pygame.Rect(HOLD_LEFT_MARGIN + BLOCK_MARGIN_SIZE, BOARD_TOP_MARGIN,
+                                   NEXT_BLOCK_WIDTH - 2 * BLOCK_MARGIN_SIZE, HOLD_HEIGHT - 2 * BLOCK_MARGIN_SIZE)
+    pygame.draw.rect(SCREEN, GRAY, hold_block_outline)
+    pygame.draw.rect(SCREEN, BLACK, hold_block_black)
 
     pygame.display.update()
 
@@ -259,7 +286,7 @@ def main():
 #        print(avaliable_blocks)
         print(f"Score is: {score}. Total lines cleared is: {lines}")
 
-        draw_screen(board, block, block_shadow)
+        draw_screen(board, block, block_shadow, avaliable_blocks)
     pygame.quit()
 
 
