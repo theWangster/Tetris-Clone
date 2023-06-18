@@ -21,6 +21,7 @@ pygame.display.set_caption(CAPTION)
 SCREEN.fill(BLACK)
 pygame.display.flip()
 font = pygame.font.SysFont('Comic Sans MS', 48)
+score_font = pygame.font.SysFont('Comic Sans MS', 18)
 drop_sfx = pygame.mixer.Sound(os.path.join("Assets/", "drop-sfx.opus"))
 drop_sfx.set_volume(0.25)
 death_sfx = pygame.mixer.Sound(os.path.join("Assets/", "death-sfx.opus"))
@@ -177,7 +178,7 @@ def draw_screen(board, block, block_shadow, avaliable_blocks, alt_block, score):
                 pygame.draw.rect(SCREEN, block_color.get(
                     alt_block.color), cur_pixel)
 
-    score_text = font.render(f"Score: {score}", True, WHITE)
+    score_text = score_font.render(f"Score: {score}", True, WHITE)
     SCREEN.blit(score_text, (HOLD_BLOCK_LEFT_POS - 20,
                 HOLD_BLOCK_TOP_POS + HOLD_HEIGHT + 20))
 
