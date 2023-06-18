@@ -34,7 +34,6 @@ move_block_down = pygame.USEREVENT + 1
 move_horizontally = pygame.USEREVENT + 2
 move_rotate = pygame.USEREVENT + 3
 move_hard_drop = pygame.USEREVENT + 4
-move_switching = pygame.USEREVENT + 5
 game_over = pygame.USEREVENT + 7
 
 
@@ -266,8 +265,6 @@ def main():
                 rotating = False
             elif event.type == move_hard_drop:
                 hard_dropping = False
-            elif event.type == move_switching:
-                switching = False
             elif event.type == game_over:
                 running = False
 
@@ -282,7 +279,7 @@ def main():
                     lines += new_lines
                     break
             pygame.time.set_timer(move_hard_drop, HARD_DROP_SPEED)
-            pygame.time.set_timer(move_switching, 150)
+            switching = False
         if keys_pressed[pygame.K_DOWN]:  # drops block fast
             block.move_down(board)
 
@@ -326,7 +323,7 @@ def main():
             block, board, avaliable_blocks, score, new_lines = place_block(
                 block, board, avaliable_blocks, score, level)
             stopped_counter = 0
-            pygame.time.set_timer(move_switching, 150)
+            switching = False
             lines += new_lines
 
         # draws block shadow
